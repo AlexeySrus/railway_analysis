@@ -1,5 +1,6 @@
 import base64
 import time
+import os
 import pandas as pd
 import streamlit as st
 from streamlit_webrtc import webrtc_streamer
@@ -128,3 +129,4 @@ if __name__ == "__main__":
             # time.sleep(0.01)
             if stop_button:
                 grabbed = False
+                os.remove(uploaded_file.name)
