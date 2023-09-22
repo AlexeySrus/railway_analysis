@@ -217,7 +217,7 @@ class YOLOONNXInference(object):
         res_cls = [int(pp.category.id) for pp in postprocessed_sahi_boxes]
         return res_boxes, res_confs, res_cls, image_shape
 
-    def _generate_tiles_coordinates(self, img_size :Tuple[int, int]) -> Tuple[List[int], List[int]]:
+    def _generate_tiles_coordinates(self, img_size :Tuple[int, int, int]) -> Tuple[List[int], List[int]]:
         tile_size = self.w_imgsz
         stride = WINDOW_STRIDE
         x0_vec = []
@@ -270,7 +270,7 @@ class YOLOONNXInference(object):
         img = self.preprocess_for_tiling(image)
         tile_size = self.w_imgsz
 
-        x0_vec, y0_vec = self._generate_tiles_coordinates(img.shape)
+        x0_vec, y0_vec = self._generate_tiles_coordinates((img.shape[0], img.shape[1] // 2, img.shape[2]))
 
         inference_batch = []
         tiled_predictions = []
@@ -375,6 +375,10 @@ class YOLOONNXInference(object):
         if tta_predict:
             assert self.enable_sahi_postprocess, 'To use TTA SAHI postprocess is enabled'
 
+        boxes_result = []
+        confidences = []
+        classes = []
+
         if window_predict:
             if tta_predict:
                 boxes_result, confidences, classes = self.tta_window_inference(image)
@@ -382,10 +386,14 @@ class YOLOONNXInference(object):
                 boxes_result, confidences, classes = self.window_predict(image)
         elif tta_predict:
             boxes_result, confidences, classes = self.tta_inference(image)
-        else:
-            transformed_image = self.preprocess(image.copy())
-            yolo_prediction = self.run_model(transformed_image)
-            boxes_result, confidences, classes = self.postprocess(yolo_prediction, (self.imgsz, self.imgsz), image.shape[:2])
+
+        transformed_image = self.preprocess(image.copy())
+        yolo_prediction = self.run_model(transformed_image)
+        ff_boxes_result, ff_confidences, ff_classes = self.postprocess(yolo_prediction, (self.imgsz, self.imgsz), image.shape[:2])
+
+        boxes_result += ff_boxes_result
+        confidences += ff_confidences
+        classes += ff_classes
 
         if len(boxes_result) == 0:
             return [], [], [], image.shape[:2]

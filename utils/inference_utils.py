@@ -27,14 +27,14 @@ def sigmoid(x):
     return 1.0 / (1.0 + np.exp(-x))
 
 
-def postprocess_segmentation(prediction: np.ndarray, original_shape: Tuple[int, int], shifts: Tuple[int, int]) -> np.ndarray:
+def postprocess_segmentation(prediction: np.ndarray, original_shape: Tuple[int, int], shifts: Tuple[int, int], threshold: float = 0.5) -> np.ndarray:
     max_image_side = max(original_shape[:2])
 
     pred = prediction[0].transpose(1, 2, 0)
     pred = cv2.resize(pred, (max_image_side, max_image_side), interpolation=cv2.INTER_CUBIC)
     pred = pred.transpose(2, 0, 1)
 
-    pred = sigmoid(pred) > 0.5
+    pred = sigmoid(pred) > threshold
 
     sx, sy = shifts
     sx = abs(sx)

@@ -205,7 +205,7 @@ if __name__ == '__main__':
         window_size=WINDOW_SIZE,
         enable_sahi_postprocess=True
     )
-    imagep = '/home/alexey/Downloads/test_age.jpg'
+    imagep = '/home/alexey/Downloads/photo_2023-09-22_20-17-19.jpg'
     img = cv2.imread(imagep, cv2.IMREAD_COLOR)
     out = model(img, window_predict=True, tta_predict=False)
     out = convert_yoloonnx_detections_to_united_list(out)
@@ -213,8 +213,11 @@ if __name__ == '__main__':
 
     for det in out:
         box, prob, cls = det
+        if cls != 0:
+            continue
         img = cv2.rectangle(img, box[:2], box[2:], color=(50, 200, 20), thickness=5)
 
+    cv2.namedWindow('Result', cv2.WINDOW_NORMAL)
     cv2.imshow('Result', img)
     cv2.waitKey(0)
     cv2.destroyAllWindows()
