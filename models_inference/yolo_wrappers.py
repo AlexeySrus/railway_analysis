@@ -196,16 +196,25 @@ class YOLOXONNXInference(YOLOONNXInference):
 if __name__ == '__main__':
     import cv2
     from models_inference.yolo_main_wrapper import convert_yoloonnx_detections_to_united_list
+    from models_inference.yolo_config import WINDOW_SIZE, INPUT_SIZE
 
     w_path = 'weights/yolov8s.onnx'
     model = YOLOONNXInference(
         w_path,
-        image_size=640,
-        window_size=-1,
+        image_size=INPUT_SIZE,
+        window_size=WINDOW_SIZE,
         enable_sahi_postprocess=True
     )
     imagep = '/home/alexey/Downloads/test_age.jpg'
     img = cv2.imread(imagep, cv2.IMREAD_COLOR)
-    out = model(img, window_predict=False, tta_predict=False)
+    out = model(img, window_predict=True, tta_predict=False)
     out = convert_yoloonnx_detections_to_united_list(out)
     print(out)
+
+    for det in out:
+        box, prob, cls = det
+        img = cv2.rectangle(img, box[:2], box[2:], color=(50, 200, 20), thickness=5)
+
+    cv2.imshow('Result', img)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()

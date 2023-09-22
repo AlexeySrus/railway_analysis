@@ -84,7 +84,7 @@ class YOLOONNXInference(object):
     def __init__(self,
                  weights: str,
                  image_size: int,
-                 window_batch_size: int = 4,
+                 window_batch_size: int = 1,
                  window_size: int = 1280,
                  enable_sahi_postprocess: bool = False):
         self.imgsz = image_size
@@ -205,7 +205,7 @@ class YOLOONNXInference(object):
                         lst_box[1] + lst_box[3]
                     ],
                     category_id=classes[i],
-                    # category_name='person',
+                    category_name=str(classes[i]),
                     score=confidences[i],
                     full_shape=list(image_shape)
                 )
@@ -266,7 +266,7 @@ class YOLOONNXInference(object):
 
         return batch_tiled_predictions
 
-    def window_predict(self, image: np.ndarray) -> Tuple[List[np.ndarray], List[float]]:
+    def window_predict(self, image: np.ndarray) -> Tuple[List[np.ndarray], List[float], List[int]]:
         img = self.preprocess_for_tiling(image)
         tile_size = self.w_imgsz
 
@@ -290,7 +290,7 @@ class YOLOONNXInference(object):
         batch_predictions = self.postprocess(tiled_predictions, None, None, self.device)
         return batch_predictions
 
-    def tta_inference(self, image: np.ndarray) -> Tuple[List[np.ndarray], List[float]]:
+    def tta_inference(self, image: np.ndarray) -> Tuple[List[np.ndarray], List[float], List[int]]:
         forward_transforms, inv_transforms = get_tta_transforms()
 
         transformed_image = self.preprocess(image.copy()).squeeze(0)
@@ -304,7 +304,7 @@ class YOLOONNXInference(object):
         else:
             yolo_prediction = self.run_model(tta_batch)
 
-        _boxes, _confidences = [], []
+        _boxes, _confidences, _classes = [], [], []
 
         for _bi in range(len(forward_transforms)):
             sample_preds = np.expand_dims(yolo_prediction[_bi], axis=0)
@@ -313,7 +313,7 @@ class YOLOONNXInference(object):
             if changed_shape:
                 image_shape = image_shape[::-1]
 
-            sample_boxes, sample_confidences = self.postprocess(sample_preds, (self.imgsz, self.imgsz), image_shape)
+            sample_boxes, sample_confidences, sample_classes = self.postprocess(sample_preds, (self.imgsz, self.imgsz), image_shape)
 
             if len(sample_boxes) == 0:
                 continue
@@ -322,16 +322,17 @@ class YOLOONNXInference(object):
             rev_boxes = [rb for rb in rev_boxes]
             _boxes += rev_boxes
             _confidences += sample_confidences
+            _classes += sample_classes
 
-        return _boxes, _confidences
+        return _boxes, _confidences, _classes
 
-    def tta_window_inference(self, image: np.ndarray) -> Tuple[List[np.ndarray], List[float]]:
+    def tta_window_inference(self, image: np.ndarray) -> Tuple[List[np.ndarray], List[float], List[int]]:
         forward_transforms, inv_transforms = get_tta_transforms(restricted=True)
 
         chw_image = image.transpose((2, 0, 1))
 
         tta_hwc_images = [rotate_image(chw_image, tr).transpose((1, 2, 0)) for tr in forward_transforms]
-        _boxes, _confidences = [], []
+        _boxes, _confidences, _classes = [], [], []
 
         for _bi in range(len(forward_transforms)):
             _input_image = tta_hwc_images[_bi]
@@ -340,7 +341,7 @@ class YOLOONNXInference(object):
             if changed_shape:
                 image_shape = image_shape[::-1]
 
-            sample_boxes, sample_confidences = self.window_predict(_input_image)
+            sample_boxes, sample_confidences, sample_classes = self.window_predict(_input_image)
 
             if len(sample_boxes) == 0:
                 continue
@@ -350,8 +351,9 @@ class YOLOONNXInference(object):
             rev_boxes = [rb for rb in rev_boxes]
             _boxes += rev_boxes
             _confidences += sample_confidences
+            _classes += sample_classes
 
-        return _boxes, _confidences
+        return _boxes, _confidences, _classes
 
     def __call__(self, image: str, window_predict: bool = False, tta_predict: bool = False) -> Tuple[List[np.ndarray], List[float], List[int], Tuple[int, int]]:
         """
@@ -375,11 +377,11 @@ class YOLOONNXInference(object):
 
         if window_predict:
             if tta_predict:
-                boxes_result, confidences = self.tta_window_inference(image)
+                boxes_result, confidences, classes = self.tta_window_inference(image)
             else:
-                boxes_result, confidences = self.window_predict(image)
+                boxes_result, confidences, classes = self.window_predict(image)
         elif tta_predict:
-            boxes_result, confidences = self.tta_inference(image)
+            boxes_result, confidences, classes = self.tta_inference(image)
         else:
             transformed_image = self.preprocess(image.copy())
             yolo_prediction = self.run_model(transformed_image)
