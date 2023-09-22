@@ -42,7 +42,7 @@ if __name__ == '__main__':
 
     for box_name in tqdm(os.listdir(args.boxes)):
         box_path = os.path.join(args.boxes, box_name)
-        box_basename = os.path.splitext(box_name)[0]
+        box_basename = os.path.splitext(os.path.splitext(box_name)[0])[0]
 
         with open(box_path, 'r') as f:
             label_data = json.load(f)
@@ -50,8 +50,12 @@ if __name__ == '__main__':
         lab_path = os.path.join(train_labels_folder, '{}.txt'.format(box_basename))
         if box_basename in val_images_basenames:
             lab_path = os.path.join(val_labels_folder, '{}.txt'.format(box_basename))
+            assert os.path.exists(os.path.join(val_images_folder, '{}.png'.format(box_basename)))
         elif box_basename in test_images_basenames:
             lab_path = os.path.join(test_labels_folder, '{}.txt'.format(box_basename))
+            assert os.path.exists(os.path.join(test_images_folder, '{}.png'.format(box_basename)))
+        else:
+            assert os.path.exists(os.path.join(train_images_folder, '{}.png'.format(box_basename)))
 
         with open(lab_path, 'w') as f:
             h = label_data['img_size']['height']
