@@ -46,13 +46,13 @@ if __name__ == "__main__":
     )
 
     header = """
-                <h1>
+                <h1 style="color:#2a93b9;">
                 Безопасный маршрут
                 </h1>
                 """
 
     st.markdown(header, unsafe_allow_html=True)
-    st.caption("Разработано командой **RabotyagiTeam**🍆")
+    st.caption("Разработано командой **RabotyagiTeam**👷")
 
     hide_streamlit_style = """
                 <style>
@@ -97,36 +97,43 @@ if __name__ == "__main__":
 
 
         submitted = st.form_submit_button("Старт")
-    
+
+
     if submitted and uploaded_file is not None:
-        
-        st.warning("Внимание! Обработка занимает некоторое время. Пожалуйста, не перезагружайте страницу!", icon="🚨")
+        with st.form("inference_form"):
+            stop_inference = st.form_submit_button("Остановить")
 
-        # progress_text = "Нейронки за работой.."
-        # my_bar = st.progress(0, text=progress_text)
+            st.warning("Внимание! Обработка занимает некоторое время. Пожалуйста, не перезагружайте страницу!", icon="🚨")
 
-        with open(uploaded_file.name, mode='wb') as f:
-            f.write(uploaded_file.read())
+            # progress_text = "Нейронки за работой.."
+            # my_bar = st.progress(0, text=progress_text)
 
-        stream = cv2.VideoCapture(uploaded_file.name, cv2.CAP_FFMPEG)
+            with open(uploaded_file.name, mode='wb') as f:
+                f.write(uploaded_file.read())
 
-        # stream_length = int(stream.get(cv2.CAP_PROP_FRAME_COUNT))
-        frame_display = st.empty()
-        stop_button = st.button(label="Остановить")
+            stream = cv2.VideoCapture(uploaded_file.name, cv2.CAP_FFMPEG)
 
-        grabbed = True
-        while grabbed:
-            grabbed, frame = stream.read()
+            st.session_state["stream"] = stream
+            st.session_state["active"] = True
+            # stream_length = int(stream.get(cv2.CAP_PROP_FRAME_COUNT))
+            frame_display = st.empty()
+            # stop_button = st.button(label="Остановить")
 
-            if not grabbed:
-                break
+            grabbed = True
+            while grabbed:
+                grabbed, frame = stream.read()
+
+                if not grabbed:
+                    break
+                
+                # frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                mask = sm(frame)
+                vis_frame = plot_railway_masks(frame, mask)
             
-            # frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            mask = sm(frame)
-            vis_frame = plot_railway_masks(frame, mask)
-        
-            frame_display.image(Image.fromarray(vis_frame), channels="BGR")
-            # time.sleep(0.01)
-            if stop_button:
-                grabbed = False
-                os.remove(uploaded_file.name)
+                frame_display.image(Image.fromarray(vis_frame), channels="BGR")
+
+                # if stop_inference:
+            # print("STOP")
+            # stream.release()
+            # os.remove(uploaded_file.name)
+            # grabbed = False
