@@ -1,14 +1,10 @@
-import base64
-import time
-import os
-import pandas as pd
 import streamlit as st
-from streamlit_webrtc import webrtc_streamer
 import numpy as np
 import cv2
 from PIL import Image
 
-from models_inference.segmentation_model import preprocess_frame, SegmentationModelWrapper
+from models_inference.segmentation_model import SegmentationModelWrapper
+from models_inference.yolo_main_wrapper import convert_yoloonnx_detections_to_united_list, YOLOONNXInference
 
 
 def plot_railway_masks(image: np.ndarray, mask: np.ndarray) -> np.ndarray:
@@ -33,9 +29,64 @@ def plot_railway_masks(image: np.ndarray, mask: np.ndarray) -> np.ndarray:
     return viz_img
 
 
+def plot_railway_masks(image: np.ndarray, mask: np.ndarray) -> np.ndarray:
+    class_colors = np.array(
+        [
+            [200, 50, 20],
+            [10, 200, 20],
+            [15, 200, 200]
+        ]
+    ).astype(np.float16)
+
+    viz_img = image.copy()
+
+    for i in range(3):
+        cls_num = i + 1
+
+        viz_img[mask == cls_num] = (
+                image[mask == cls_num].astype(np.float16) * 0.4 +
+                class_colors[i] * 0.6
+        ).astype(np.uint8)
+
+    return viz_img
+
+
+def plot_detections(image: np.ndarray, detections, mask):
+    vis = image.copy()
+
+    for d in detections:
+        coords, conf, cls = d
+        x1, y1, x2, y2 = coords
+
+        if mask[d[0][3], d[0][0]] == 1 or mask[d[0][3], d[0][2]] == 1:
+            color = (255, 0, 0)
+        else:
+            color = (0, 255, 0)
+
+        vis = cv2.rectangle(vis, (x1, y1), (x2, y2), thickness=2, color=color)
+    
+    return vis
+
+
+def upscale_bbox(bbox: np.ndarray, shape: tuple, percent: float = 0.4) -> list:
+    x1, y1, x2, y2 = bbox
+    h = y2 - y1
+    padd = int(h * percent)
+    
+    return [int(max(x1 - padd, 0)), y1, min(x2 + padd, shape[1] - 1), y2]
+
 
 def get_segmentation_model():
     return SegmentationModelWrapper("./data/seg.onnx")
+
+
+def get_detection_model():
+    return YOLOONNXInference(
+        "./data/yolov8s.onnx",
+        image_size=640,
+        window_size=-1,
+        enable_sahi_postprocess=False
+    )
 
 
 if __name__ == "__main__":
@@ -81,6 +132,7 @@ if __name__ == "__main__":
         unsafe_allow_html=True)
 
     sm = get_segmentation_model()
+    detector = get_detection_model()
     
     with st.form("my_form"):
         col1, col2 = st.columns(2)
@@ -128,9 +180,14 @@ if __name__ == "__main__":
                 
                 # frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
                 mask = sm(frame)
+                detections = detector(frame, window_predict=False, tta_predict=False)
+                detections = convert_yoloonnx_detections_to_united_list(detections)
+                detections = [(upscale_bbox(d[0], frame.shape), d[1], d[2]) for d in detections]
+
                 vis_frame = plot_railway_masks(frame, mask)
-            
-                frame_display.image(Image.fromarray(vis_frame), channels="BGR")
+                vis_frame = plot_detections(vis_frame, detections, mask)
+
+                frame_display.image(Image.fromarray(cv2.cvtColor(vis_frame, cv2.COLOR_BGR2RGB)))
 
                 # if stop_inference:
             # print("STOP")
