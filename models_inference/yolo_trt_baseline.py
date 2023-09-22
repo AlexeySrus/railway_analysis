@@ -3,12 +3,11 @@ import threading
 import numpy as np
 import tensorrt as trt
 import pycuda.driver as cuda
+import torch
 
-from utils.inference_utils import preprocess_frame, postprocess_segmentation
 
-
-class super_gradients_segmentation(object):
-    def __init__(self, engine_file_path: str, image_size: int = 1024):
+class super_gradients_detection(object):
+    def __init__(self, engine_file_path: str, image_size: int = 640):
         TRT_LOGGER = trt.Logger(trt.Logger.INFO)
         runtime = trt.Runtime(TRT_LOGGER)
         self.ctx = cuda.Device(0).make_context()
@@ -68,7 +67,7 @@ class super_gradients_segmentation(object):
         cuda_outputs = self.cuda_outputs
         bindings = self.bindings
         # Do image preprocess
-        blob = cv2.dnn.blobFromImage(image_raw, scalefactor=1, size=(self.image_size, self.image_size), swapRB=False)
+        blob = cv2.dnn.blobFromImage(image_raw, scalefactor=1, size=(self.image_size, self.image_size), swapRB=True).astype(np.float16)
         # Copy input image to host buffer
         np.copyto(host_inputs[0], blob.ravel())
         # Transfer input data  to the GPU.
@@ -82,16 +81,16 @@ class super_gradients_segmentation(object):
         stream.synchronize()
         self.ctx.pop()
 
-        result_masks = host_outputs[0]
-        return result_masks
+        detections = host_outputs[0]
+        return detections
 
     def __del__(self):
         self.ctx.pop()
 
 
-class SegmentationTRTInference:
-    def __init__(self, trt_weights: str, size: int = 1024, number_classes: int = 4):
-        self.model = super_gradients_segmentation(trt_weights, size)
+class YoloTRTCaller:
+    def __init__(self, trt_weights: str, size: int = 640, number_classes: int = 80):
+        self.model = super_gradients_detection(trt_weights, size)
         self.size = size
         self.number_classes = number_classes
 
@@ -99,8 +98,28 @@ class SegmentationTRTInference:
         return self.model.inference(image)
 
     def __call__(self, image: np.ndarray) -> np.ndarray:
-        t_image, (sx, sy) = preprocess_frame(image)
-        pred = self.run(t_image.squeeze(0).transpose(1, 2, 0))
-        pred = pred.reshape((1, self.number_classes, self.size, self.size))
-        res_mask = postprocess_segmentation(pred, (image.shape[0], image.shape[1]), (sx, sy))
-        return res_mask
+        pred = self.run(image)
+        return pred
+
+
+if __name__ == '__main__':
+    from utils.yolo_utils import non_max_suppression_v8
+
+    w_path = 'weights/detection.pkl'
+    model = YoloTRTCaller(w_path)
+    imagep = '/home/alexey/Downloads/photo_2023-09-22_20-17-19.jpg'
+    img = cv2.imread(imagep, cv2.IMREAD_COLOR)
+    out = model(img)
+
+    dets = non_max_suppression_v8(torch.from_numpy(out.reshape((1, 84, -1))))
+    dets = dets[0]
+
+    for det in dets:
+        box = det[:4].numpy().astype(np.int32).tolist()
+        print(box)
+        img = cv2.rectangle(img, box[:2], box[2:], color=(50, 200, 20), thickness=5)
+
+    cv2.namedWindow('Result', cv2.WINDOW_NORMAL)
+    cv2.imshow('Result', img)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()

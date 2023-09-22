@@ -93,25 +93,12 @@ class YOLOONNXInference(object):
         self.gain_k = self.w_imgsz / self.imgsz
         self.enable_sahi_postprocess = enable_sahi_postprocess
 
-        if torch.cuda.is_available():
-            providers = ['CUDAExecutionProvider']
-            self.device = 'cuda'
-        else:
-            print('#' * 15 + ' WARNING: CPU RUN ' + '#' * 15)
-            providers = ['CPUExecutionProvider']
-            self.device = 'cpu'
-        self.ort_model = onnxruntime.InferenceSession(weights, providers=providers)
-        meta = self.ort_model.get_modelmeta().custom_metadata_map
-        if 'stride' in meta:
-            self.stride = int(meta['stride'])
-        else:
-            self.stride = 32
+        self.weights = weights
+        self.model_is_load: bool = False
+        self.stride = 32
 
         self.pre_transformer = LetterBox((self.imgsz, self.imgsz), auto=False, stride=self.stride)
         self.shi_postprocessor = GreedyNMMPostprocess(match_threshold=GREEDY_NMM_TH, match_metric=SAHI_MATCHING_METRIC, class_agnostic=False)
-
-        self.model_input_name = self.ort_model.get_inputs()[0].name
-        self.model_output_name = self.ort_model.get_outputs()[0].name
 
         self._mean: Optional[numpy.ndarray] = None
         self._std: Optional[numpy.ndarray] = None
@@ -119,6 +106,26 @@ class YOLOONNXInference(object):
 
         self.conf = DETECTION_CONF
         self.iou = NMS_TH
+
+    def load_model(self):
+        if torch.cuda.is_available():
+            providers = ['CUDAExecutionProvider']
+            self.device = 'cuda'
+        else:
+            print('#' * 15 + ' WARNING: CPU RUN ' + '#' * 15)
+            providers = ['CPUExecutionProvider']
+            self.device = 'cpu'
+        self.main_model = onnxruntime.InferenceSession(self.weights, providers=providers)
+        meta = self.main_model.get_modelmeta().custom_metadata_map
+        if 'stride' in meta:
+            self.stride = int(meta['stride'])
+        else:
+            self.stride = 32
+
+        self.model_input_name = self.main_model.get_inputs()[0].name
+        self.model_output_name = self.main_model.get_outputs()[0].name
+
+        self.model_is_load = True
 
     def pre_transform(self, x: np.ndarray) -> np.ndarray:
         return self.pre_transformer(image=x)
@@ -156,7 +163,7 @@ class YOLOONNXInference(object):
         return img
 
     def run_model(self, x: np.ndarray) -> np.ndarray:
-        out = self.ort_model.run(
+        out = self.main_model.run(
             [self.model_output_name],
             {self.model_input_name: x.astype(np.float32)}
         )
@@ -270,13 +277,16 @@ class YOLOONNXInference(object):
         img = self.preprocess_for_tiling(image)
         tile_size = self.w_imgsz
 
-        x0_vec, y0_vec = self._generate_tiles_coordinates((img.shape[0], img.shape[1] // 2, img.shape[2]))
+        x0_vec, y0_vec = self._generate_tiles_coordinates((img.shape[0], 2 * img.shape[1] // 3, img.shape[2]))
 
         inference_batch = []
         tiled_predictions = []
         for y0 in y0_vec:
             for x0 in x0_vec:
                 img_crop = img[:, y0:y0 + tile_size, x0:x0 + tile_size]
+                if img_crop.shape[1] * img_crop.shape[2] == 0:
+                    continue
+
                 if len(inference_batch) < self.w_bs:
                     inference_batch.append((img_crop, (x0, y0)))
                 else:
@@ -327,7 +337,7 @@ class YOLOONNXInference(object):
         return _boxes, _confidences, _classes
 
     def tta_window_inference(self, image: np.ndarray) -> Tuple[List[np.ndarray], List[float], List[int]]:
-        forward_transforms, inv_transforms = get_tta_transforms(restricted=True)
+        forward_transforms, inv_transforms = get_tta_transforms(restricted=False)
 
         chw_image = image.transpose((2, 0, 1))
 
@@ -370,6 +380,9 @@ class YOLOONNXInference(object):
                 - List of categories indexes
                 - Original image shape
         """
+        if not self.model_is_load:
+            self.load_model()
+
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
         if tta_predict:
@@ -384,12 +397,13 @@ class YOLOONNXInference(object):
                 boxes_result, confidences, classes = self.tta_window_inference(image)
             else:
                 boxes_result, confidences, classes = self.window_predict(image)
-        elif tta_predict:
-            boxes_result, confidences, classes = self.tta_inference(image)
 
-        transformed_image = self.preprocess(image.copy())
-        yolo_prediction = self.run_model(transformed_image)
-        ff_boxes_result, ff_confidences, ff_classes = self.postprocess(yolo_prediction, (self.imgsz, self.imgsz), image.shape[:2])
+        if tta_predict:
+            ff_boxes_result, ff_confidences, ff_classes = self.tta_inference(image)
+        else:
+            transformed_image = self.preprocess(image.copy())
+            yolo_prediction = self.run_model(transformed_image)
+            ff_boxes_result, ff_confidences, ff_classes = self.postprocess(yolo_prediction, (self.imgsz, self.imgsz), image.shape[:2])
 
         boxes_result += ff_boxes_result
         confidences += ff_confidences
