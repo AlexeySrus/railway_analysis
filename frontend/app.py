@@ -1,5 +1,5 @@
 import time
-from typing import Optional
+from typing import Optional, List
 import datetime
 import streamlit as st
 import numpy as np
@@ -134,7 +134,7 @@ def plot_status(image: np.ndarray, status: str) -> np.ndarray:
     )
 
 
-def get_intersection_states(detections: list[tuple], mask: np.ndarray) -> list:
+def get_intersection_states(detections: List[tuple], mask: np.ndarray) -> List:
     res = []
 
     for d in detections:
