@@ -8,7 +8,7 @@ from PIL import Image
 import pandas as pd
 import os
 from stqdm import stqdm
-from datetime import timedelta
+import yaml
 
 
 from models_inference.segmentation_model import SegmentationModelWrapper
@@ -55,6 +55,11 @@ class IncidentCounter:
             self.new_incident_start = timestamp
 
         return self.last_recorded_incident_state
+
+
+def get_config():
+    with open("./config.yaml") as f:
+        return yaml.load(f, Loader=yaml.FullLoader)
 
 
 def plot_railway_masks(image: np.ndarray, mask: np.ndarray) -> np.ndarray:
@@ -148,20 +153,17 @@ def upscale_bbox(bbox: np.ndarray, shape: tuple, percent: float = 0.4) -> list:
     return [int(max(x1 - padd, 0)), y1, min(x2 + padd, shape[1] - 1), y2]
 
 
-def get_segmentation_model():
-    return SegmentationModelWrapper(SEGM_MODEL_PATH)
+def get_segmentation_model(weights):
+    return SegmentationModelWrapper(weights)
 
 
-def get_detection_model():
-    return YOLOONNXInference(
-        DETECTION_MODEL_PATH,
-        image_size=640,
-        window_size=-1,
-        enable_sahi_postprocess=False,
-    )
+def get_detection_model(conf):
+    return YOLOONNXInference(**conf)
 
 
 if __name__ == "__main__":
+    conf = get_config()
+
     st.set_page_config(
         layout="wide",
         page_title="Цифровой прорыв/Безопасный маршрут"
@@ -204,8 +206,8 @@ if __name__ == "__main__":
         unsafe_allow_html=True,
     )
 
-    sm = get_segmentation_model()
-    detector = get_detection_model()
+    sm = get_segmentation_model(conf["segmentation"]["weights"])
+    detector = get_detection_model(conf["yolo"])
 
     with st.form("my_form"):
         col1, col2 = st.columns(2)
