@@ -34,8 +34,8 @@ def plot_railway_masks(image: np.ndarray, mask: np.ndarray) -> np.ndarray:
 if __name__ == '__main__':
     yolo_model = YOLO("yolov8l.pt")
 
-    # seg_model = SegmentationModelWrapper('weights/seg.onnx')
-    seg_model = SegmentationTRTInference('weights/seg.pkl')
+    seg_model = SegmentationModelWrapper('weights/seg.onnx')
+    # seg_model = SegmentationTRTInference('weights/seg.pkl')
 
     vpath = '/media/alexey/HDDData/datasets/railway/RZD_Alarm/central_cam/13_12_10.mp4'
 
