@@ -138,7 +138,7 @@ def get_intersection_states(detections: List[tuple], mask: np.ndarray) -> List:
     res = []
 
     for d in detections:
-        if mask[d[0][3], d[0][0]] == 1 or mask[d[0][3], d[0][2]] == 1:
+        if np.any(mask[d[0][3], d[0][0]:d[0][2]]):
             res.append(2)
         else:
             res.append(1)
@@ -257,7 +257,7 @@ if __name__ == "__main__":
 
         st.session_state["stream"] = stream
         st.session_state["active"] = True
-        
+
         state_status = st.empty()
         frame_display = st.empty()
         incidents_list = st.empty()
