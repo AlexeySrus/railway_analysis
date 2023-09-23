@@ -15,6 +15,43 @@ from models_inference.yolo_main_wrapper import (
 )
     
 
+# class _IncidentCounter():
+#     def __init__(self, timeout: float = 1.5):
+#         self.state_change_timeout = timeout
+
+#         self.last_recorded_incident_state = 1
+#         self.last_recorded_incident_time = np.NINF
+
+#         self.new_incident_timeout = 0
+#         self.new_incident = 1
+#         self.new_incident_start = time.time()
+        
+#         self.incidents = []
+
+#     @property
+#     def total_incidents(self):
+#         return len(self.incidents)
+    
+#     def update(self, max_state: int, timestamp: Optional[float] = None):
+#         if max_state != self.last_recorded_incident_state:
+#             if max_state != self.new_incident:
+#                 self.new_incident = max_state
+#                 self.new_incident_start = time.time()
+
+#             if max_state > self.last_recorded_incident_state:
+#                 self.incidents.append(timestamp)
+                
+#             self.new_incident_timeout = time.time() - self.new_incident_start
+
+#             if (self.last_recorded_incident_state < self.new_incident) \
+#             or self.new_incident_timeout > self.state_change_timeout:
+#                 self.last_recorded_incident_state = self.new_incident
+#         else:
+#             self.new_incident_start = time.time()
+
+#         return self.last_recorded_incident_state
+    
+
 class IncidentCounter():
     def __init__(self, timeout: float = 1.5):
         self.state_change_timeout = timeout
@@ -24,7 +61,7 @@ class IncidentCounter():
 
         self.new_incident_timeout = 0
         self.new_incident = 1
-        self.new_incident_start = time.time()
+        self.new_incident_start = 0
         
         self.incidents = []
 
@@ -32,22 +69,22 @@ class IncidentCounter():
     def total_incidents(self):
         return len(self.incidents)
     
-    def update(self, max_state: int, timestamp: Optional[float] = None):
+    def update(self, max_state: int, timestamp: float):
         if max_state != self.last_recorded_incident_state:
             if max_state != self.new_incident:
                 self.new_incident = max_state
-                self.new_incident_start = time.time()
+                self.new_incident_start = timestamp
 
             if max_state > self.last_recorded_incident_state:
                 self.incidents.append(timestamp)
                 
-            self.new_incident_timeout = time.time() - self.new_incident_start
+            self.new_incident_timeout = timestamp - self.new_incident_start
 
             if (self.last_recorded_incident_state < self.new_incident) \
             or self.new_incident_timeout > self.state_change_timeout:
                 self.last_recorded_incident_state = self.new_incident
         else:
-            self.new_incident_start = time.time()
+            self.new_incident_start = timestamp
 
         return self.last_recorded_incident_state
     
