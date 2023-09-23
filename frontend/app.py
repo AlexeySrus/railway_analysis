@@ -18,42 +18,6 @@ from models_inference.yolo_main_wrapper import (
 from utils.distance_utils import VisualizationRender
 from frontend.solution_config import SEGM_MODEL_PATH, DETECTION_MODEL_PATH
 
-# class _IncidentCounter():
-#     def __init__(self, timeout: float = 1.5):
-#         self.state_change_timeout = timeout
-
-#         self.last_recorded_incident_state = 1
-#         self.last_recorded_incident_time = np.NINF
-
-#         self.new_incident_timeout = 0
-#         self.new_incident = 1
-#         self.new_incident_start = time.time()
-
-#         self.incidents = []
-
-#     @property
-#     def total_incidents(self):
-#         return len(self.incidents)
-
-#     def update(self, max_state: int, timestamp: Optional[float] = None):
-#         if max_state != self.last_recorded_incident_state:
-#             if max_state != self.new_incident:
-#                 self.new_incident = max_state
-#                 self.new_incident_start = time.time()
-
-#             if max_state > self.last_recorded_incident_state:
-#                 self.incidents.append(timestamp)
-
-#             self.new_incident_timeout = time.time() - self.new_incident_start
-
-#             if (self.last_recorded_incident_state < self.new_incident) \
-#             or self.new_incident_timeout > self.state_change_timeout:
-#                 self.last_recorded_incident_state = self.new_incident
-#         else:
-#             self.new_incident_start = time.time()
-
-#         return self.last_recorded_incident_state
-
 
 class IncidentCounter:
     def __init__(self, timeout: float = 1.5):
@@ -250,18 +214,17 @@ if __name__ == "__main__":
             st.caption("Загрузка данных для обработки")
             uploaded_file = st.file_uploader("Выберите .mp4 файл")
 
-            checkbox_val = st.checkbox("Сохранить видео проишествий")
-            checkbox_val = st.checkbox("Сохранить csv отчет")
+            enable_lines_visualization = st.checkbox("Отрисовка линий расстояний")
+            if enable_lines_visualization:
+                st.warning("Отрисовка линий требует знания точных параметров камеры (intrinsics matrix),\
+                            а так же параметры крепления камеры и угол ее наклона.", icon="⚠️")
 
         with col2:
             st.caption("Параметры камеры")
 
         submitted = st.form_submit_button("Старт")
 
-    # st.caption("Список инцидентов")
-
     visualization_render: Optional[VisualizationRender] = None
-    enable_lines_visualization: bool = False
 
     if submitted and uploaded_file is not None:
         stop_inference = st.button("Остановить")
@@ -284,11 +247,11 @@ if __name__ == "__main__":
 
         st.session_state["stream"] = stream
         st.session_state["active"] = True
-        # stream_length = int(stream.get(cv2.CAP_PROP_FRAME_COUNT))
+        
         state_status = st.empty()
         frame_display = st.empty()
         incidents_list = st.empty()
-        # stop_button = st.button(label="Остановить")
+    
 
         tracker = IncidentCounter(2)
 
