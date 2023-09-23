@@ -257,7 +257,7 @@ if __name__ == "__main__":
 
         st.session_state["stream"] = stream
         st.session_state["active"] = True
-        
+
         state_status = st.empty()
         frame_display = st.empty()
         incidents_list = st.empty()
