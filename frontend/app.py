@@ -183,12 +183,12 @@ def upscale_bbox(bbox: np.ndarray, shape: tuple, percent: float = 0.4) -> list:
 
 
 def get_segmentation_model():
-    return SegmentationModelWrapper("./data/seg.onnx")
+    return SegmentationModelWrapper("./weights/seg.onnx")
 
 
 def get_detection_model():
     return YOLOONNXInference(
-        "./data/yolov8s.onnx",
+        "./weights/yolov8l.onnx",
         image_size=640,
         window_size=-1,
         enable_sahi_postprocess=False,
