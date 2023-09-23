@@ -5,6 +5,8 @@ import streamlit as st
 import numpy as np
 import cv2
 from PIL import Image
+import pandas as pd
+
 
 from models_inference.segmentation_model import SegmentationModelWrapper
 from models_inference.yolo_main_wrapper import (
@@ -156,12 +158,18 @@ def get_detection_model():
     )
 
 
+def init_state():
+    st.session_state["incidents"] = []
+
+
 if __name__ == "__main__":
     st.set_page_config(
         layout="wide",
         page_title="Цифровой прорыв/Безопасный маршрут"
         # initial_sidebar_state="expanded",
     )
+
+    init_state()
 
     header = """
                 <h1 style="color:#2a93b9;">
@@ -218,7 +226,6 @@ if __name__ == "__main__":
         submitted = st.form_submit_button("Старт")
 
     if submitted and uploaded_file is not None:
-        # with st.form("inference_form"):
         stop_inference = st.button("Остановить")
 
         if not stop_inference:
@@ -237,6 +244,7 @@ if __name__ == "__main__":
         # stream_length = int(stream.get(cv2.CAP_PROP_FRAME_COUNT))
         state_status = st.empty()
         frame_display = st.empty()
+        incidents_list = st.empty()
         # stop_button = st.button(label="Остановить")
 
         tracker = IncidentCounter(2)
@@ -259,7 +267,7 @@ if __name__ == "__main__":
             ]
 
             states = get_intersection_states(detections, mask)
-            tracker.update(max(states) if len(states) > 0 else 1)
+            tracker.update(max(states) if len(states) > 0 else 1, timestamp)
             
             v_time = time.time()
             vis_frame = plot_railway_masks(frame, mask)
@@ -270,15 +278,20 @@ if __name__ == "__main__":
                 state_status.error("Опасная ситуация!", icon="🚨")
             else:
                 state_status.info("Путь безопасен", icon="✅")
-            # else:
-            #     state_status.info("Опасная ситуация!")
             vis_frame = plot_status(vis_frame, f"STATUS: {status}, COUNT {tracker.total_incidents}")
+
+            st.session_state["incidents"] = tracker.incidents
 
             frame_display.image(
                 Image.fromarray(cv2.cvtColor(vis_frame, cv2.COLOR_BGR2RGB))
             )
+
+            incidents_list.write(tracker.incidents)
                 # if stop_inference:
             # print("STOP")
             # stream.release()
             # os.remove(uploaded_file.name)
             # grabbed = False
+    
+    if st.session_state["incidents"]:
+        st.write(st.session_state["incidents"])
