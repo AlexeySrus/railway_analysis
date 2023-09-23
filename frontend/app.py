@@ -224,9 +224,9 @@ if __name__ == "__main__":
 
         with col2:
             st.caption("Параметры камеры")
-            camera_height = st.slider("Высота установки камеры", min_value=0, max_value=5, value=3)
-            camera_angle = st.slider("Угол наклона камеры", min_value=0, max_value=90, value=35)
-            fov = st.slider("Угол обзор", min_value=0, max_value=200)
+            camera_height = st.slider("Высота установки камеры", min_value=0.0, max_value=5.0, value=2.0, step=0.1)
+            camera_angle = st.slider("Угол наклона камеры", min_value=0.0, max_value=30.0, value=2.5, step=0.1)
+            fov = st.slider("Угол обзор", min_value=0, max_value=200, value=90, step=1)
 
         submitted = st.form_submit_button("Старт")
 
@@ -250,7 +250,10 @@ if __name__ == "__main__":
         if enable_lines_visualization:
             stream_width = int(stream.get(cv2.CAP_PROP_FRAME_WIDTH))
             stream_height = int(stream.get(cv2.CAP_PROP_FRAME_HEIGHT))
-            visualization_render = VisualizationRender((stream_height, stream_width))
+            visualization_render = VisualizationRender(
+                (stream_height, stream_width),
+                pov=fov, camera_h=camera_height, angle=camera_angle
+            )
 
         st.session_state["stream"] = stream
         st.session_state["active"] = True
