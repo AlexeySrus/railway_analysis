@@ -2,9 +2,11 @@ import streamlit as st
 import numpy as np
 import cv2
 from PIL import Image
+from timeit import default_timer as timer
 
 from models_inference.segmentation_model import SegmentationModelWrapper
-from models_inference.yolo_main_wrapper import convert_yoloonnx_detections_to_united_list, YOLOONNXInference
+from models_inference.yolo_main_wrapper import convert_yoloonnx_detections_to_united_list
+from models_inference.yolo_wrappers import YOLOONNXInference
 
 
 def plot_railway_masks(image: np.ndarray, mask: np.ndarray) -> np.ndarray:
@@ -77,12 +79,12 @@ def upscale_bbox(bbox: np.ndarray, shape: tuple, percent: float = 0.4) -> list:
 
 
 def get_segmentation_model():
-    return SegmentationModelWrapper("./data/seg.onnx")
+    return SegmentationModelWrapper("./weights/seg.onnx")
 
 
 def get_detection_model():
     return YOLOONNXInference(
-        "./data/yolov8s.onnx",
+        "./weights/yolov8l.onnx",
         image_size=640,
         window_size=-1,
         enable_sahi_postprocess=False
@@ -179,10 +181,18 @@ if __name__ == "__main__":
                     break
                 
                 # frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                start_sm_time = timer()
                 mask = sm(frame)
+                finish_sm_time = timer()
+
+                start_det_time = timer()
                 detections = detector(frame, window_predict=False, tta_predict=False)
                 detections = convert_yoloonnx_detections_to_united_list(detections)
+                finish_det_tim = timer()
                 detections = [(upscale_bbox(d[0], frame.shape), d[1], d[2]) for d in detections]
+
+                print('Segm time: {:.3f}, det time: {:.3f}'.format(finish_sm_time - start_sm_time,
+                                                                   finish_det_tim - start_det_time))
 
                 vis_frame = plot_railway_masks(frame, mask)
                 vis_frame = plot_detections(vis_frame, detections, mask)
