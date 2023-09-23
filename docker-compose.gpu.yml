@@ -5,7 +5,7 @@ services:
         container_name: rzd-road-video-analyzer
         build:
             context: .
-            dockerfile: Dockerfile
+            dockerfile: Dockerfile_CUDA
         restart: always
         command: "streamlit run frontend/app.py --server.port=8052"
         environment:
