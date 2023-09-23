@@ -1,0 +1,24 @@
+version: '3.5'
+
+services:
+    furnitureremoval:
+        container_name: rzd-road-video-analyzer
+        build:
+            context: .
+            dockerfile: Dockerfile
+        restart: always
+        command: "streamlit run frontend/app.py --server.port=8052"
+        environment:
+          - NVIDIA_VISIBLE_DEVICES=0
+        ports:
+          - "8052:8052"
+        deploy:
+          restart_policy:
+            condition: any
+
+          resources:
+            reservations:
+              devices:
+                - driver: nvidia
+                  device_ids: [ '0' ]
+                  capabilities: [ gpu ]
