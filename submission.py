@@ -210,10 +210,7 @@ if __name__ == "__main__":
     for vpath in tqdm.tqdm(vpaths):
         new_csv = process_video(sm, detector, vpath, config["inference"]["show_vis"])
         csv = pd.concat([csv, new_csv])
-        csv.to_csv(
-            config["inference"]["output_csv"],
-            index=False,
-        )
+        csv.to_csv(config["inference"]["output_csv"], index=False, sep=";")
 
     with open(config["inference"]["output_csv"], "r") as f:
         file_lines = [fline for fline in f]

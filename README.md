@@ -1,5 +1,5 @@
-# <p align="center">Цифрвовой прорыв: сезон ИИ</p>
-## <p align="center">Безопасный маршрут</p>
+<h1 align="center">Цифровой прорыв: сезон ИИ</h1>
+<h2 align="center">Безопасный маршрут</h2>
 
 ![image](./assets/out-001.jpg)
 ## Содержание
