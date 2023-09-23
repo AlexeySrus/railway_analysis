@@ -138,7 +138,7 @@ def get_intersection_states(detections: list[tuple], mask: np.ndarray) -> list:
     res = []
 
     for d in detections:
-        if mask[d[0][3], d[0][0]] == 1 or mask[d[0][3], d[0][2]] == 1:
+        if np.any(mask[d[0][3], d[0][0]:d[0][2]]):
             res.append(2)
         else:
             res.append(1)
