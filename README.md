@@ -15,6 +15,12 @@
 - Веб интерфейс
 
 ### Примеры работы
+1. Сегментация основного и побочного путей маршрута. Детекция пешеходов.
+![image](./assets/sample1.jpeg)
+
+2. Слева - вычисление линии на расстояниях 10, 20 и 100 метров от камеры. Справа - вид сверху на маршрут поезда.
+![image](./assets/sample2.jpeg)
+<iframe src="https://drive.google.com/file/d/1_9dY4oTE-lisvIhNVidGyK169r54kulL/preview" width="640" height="480" allow="autoplay"></iframe>
 
 ### Стэк:
     - [PyTorch](https://)
