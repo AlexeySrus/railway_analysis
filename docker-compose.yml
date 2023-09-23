@@ -16,7 +16,7 @@ services:
             restart_policy:
                 condition: any
 
-    rabotyagiteam:
+    rabotyagiteamgpu:
         profiles:
             - 'gpu'
         container_name: rzd-road-video-analyzer-gpu
