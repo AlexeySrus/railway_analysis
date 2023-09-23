@@ -15,7 +15,7 @@ from models_inference.yolo_main_wrapper import (
     convert_yoloonnx_detections_to_united_list,
     YOLOONNXInference,
 )
-    
+
 
 # class _IncidentCounter():
 #     def __init__(self, timeout: float = 1.5):
@@ -27,13 +27,13 @@ from models_inference.yolo_main_wrapper import (
 #         self.new_incident_timeout = 0
 #         self.new_incident = 1
 #         self.new_incident_start = time.time()
-        
+
 #         self.incidents = []
 
 #     @property
 #     def total_incidents(self):
 #         return len(self.incidents)
-    
+
 #     def update(self, max_state: int, timestamp: Optional[float] = None):
 #         if max_state != self.last_recorded_incident_state:
 #             if max_state != self.new_incident:
@@ -42,7 +42,7 @@ from models_inference.yolo_main_wrapper import (
 
 #             if max_state > self.last_recorded_incident_state:
 #                 self.incidents.append(timestamp)
-                
+
 #             self.new_incident_timeout = time.time() - self.new_incident_start
 
 #             if (self.last_recorded_incident_state < self.new_incident) \
@@ -52,9 +52,9 @@ from models_inference.yolo_main_wrapper import (
 #             self.new_incident_start = time.time()
 
 #         return self.last_recorded_incident_state
-    
 
-class IncidentCounter():
+
+class IncidentCounter:
     def __init__(self, timeout: float = 1.5):
         self.state_change_timeout = timeout
 
@@ -64,13 +64,13 @@ class IncidentCounter():
         self.new_incident_timeout = 0
         self.new_incident = 1
         self.new_incident_start = 0
-        
+
         self.incidents = []
 
     @property
     def total_incidents(self):
         return len(self.incidents)
-    
+
     def update(self, max_state: int, timestamp: float):
         if max_state != self.last_recorded_incident_state:
             if max_state != self.new_incident:
@@ -79,17 +79,18 @@ class IncidentCounter():
 
             if max_state > self.last_recorded_incident_state:
                 self.incidents.append(timestamp)
-                
+
             self.new_incident_timeout = timestamp - self.new_incident_start
 
-            if (self.last_recorded_incident_state < self.new_incident) \
-            or self.new_incident_timeout > self.state_change_timeout:
+            if (
+                self.last_recorded_incident_state < self.new_incident
+            ) or self.new_incident_timeout > self.state_change_timeout:
                 self.last_recorded_incident_state = self.new_incident
         else:
             self.new_incident_start = timestamp
 
         return self.last_recorded_incident_state
-    
+
 
 def plot_railway_masks(image: np.ndarray, mask: np.ndarray) -> np.ndarray:
     class_colors = np.array([[200, 50, 20], [10, 200, 20], [15, 200, 200]]).astype(
@@ -147,9 +148,7 @@ def plot_status(image: np.ndarray, status: str) -> np.ndarray:
 
     fontScale = 1.4
     thickness = 3
-    text_size = cv2.getTextSize(
-        status, 0, fontScale=fontScale, thickness=thickness
-    )[0]
+    text_size = cv2.getTextSize(status, 0, fontScale=fontScale, thickness=thickness)[0]
 
     return cv2.putText(
         image,
@@ -172,7 +171,7 @@ def get_intersection_states(detections: list[tuple], mask: np.ndarray) -> list:
             res.append(2)
         else:
             res.append(1)
-    
+
     return res
 
 
@@ -290,7 +289,7 @@ if __name__ == "__main__":
 
             grabbed, frame = stream.read()
             timestamp = stream.get(cv2.CAP_PROP_POS_MSEC) / 1000.0
-            
+
             if not grabbed:
                 break
 
@@ -303,17 +302,21 @@ if __name__ == "__main__":
 
             states = get_intersection_states(detections, mask)
             tracker.update(max(states) if len(states) > 0 else 1, timestamp)
-            
+
             v_time = time.time()
             vis_frame = plot_railway_masks(frame, mask)
             vis_frame = plot_detections(vis_frame, detections, states)
 
-            status = "INCIDENT" if tracker.last_recorded_incident_state == 2 else "NORMAL"
+            status = (
+                "INCIDENT" if tracker.last_recorded_incident_state == 2 else "NORMAL"
+            )
             if status == "INCIDENT":
                 state_status.error("Опасная ситуация!", icon="🚨")
             else:
                 state_status.info("Путь безопасен", icon="✅")
-            vis_frame = plot_status(vis_frame, f"STATUS: {status}, COUNT {tracker.total_incidents}")
+            vis_frame = plot_status(
+                vis_frame, f"STATUS: {status}, COUNT {tracker.total_incidents}"
+            )
 
             st.session_state["incidents"] = tracker.incidents
 
@@ -322,21 +325,21 @@ if __name__ == "__main__":
             )
 
             incidents_list.write(tracker.incidents)
-                # if stop_inference:
-            # print("STOP")
+
         stream.release()
         os.remove(uploaded_file.name)
         incidents_list.empty()
 
-    
-    if "incidents" in st.session_state.keys() and len(st.session_state["incidents"]) > 0:
+    if (
+        "incidents" in st.session_state.keys()
+        and len(st.session_state["incidents"]) > 0
+    ):
         st.caption("Список инцидентов")
 
-        incidents = pd.DataFrame({
-            "timestamp": st.session_state["incidents"]
-        })
-        incidents["timestamp"] = incidents["timestamp"].apply(lambda x: datetime.datetime.fromtimestamp(int(x)).strftime('%M:%S')
-)
+        incidents = pd.DataFrame({"timestamp": st.session_state["incidents"]})
+        incidents["timestamp"] = incidents["timestamp"].apply(
+            lambda x: datetime.datetime.fromtimestamp(int(x)).strftime("%M:%S")
+        )
 
         st.dataframe(incidents)
         st.download_button(
@@ -344,5 +347,5 @@ if __name__ == "__main__":
             incidents.to_csv(index=False).encode("utf-8"),
             "file.csv",
             "text/csv",
-            key='download-csv'
+            key="download-csv",
         )
