@@ -17,6 +17,7 @@ from models_inference.yolo_main_wrapper import (
     YOLOONNXInference,
 )
 from utils.distance_utils import VisualizationRender
+from utils.coco_utils import coco_names
 
 
 class IncidentCounter:
@@ -223,6 +224,9 @@ if __name__ == "__main__":
 
         with col2:
             st.caption("Параметры камеры")
+            camera_height = st.slider("Высота установки камеры", min_value=0, max_value=5, value=3)
+            camera_angle = st.slider("Угол наклона камеры", min_value=0, max_value=90, value=35)
+            fov = st.slider("Угол обзор", min_value=0, max_value=200)
 
         submitted = st.form_submit_button("Старт")
 
@@ -254,7 +258,6 @@ if __name__ == "__main__":
         state_status = st.empty()
         frame_display = st.empty()
         incidents_list = st.empty()
-    
 
         tracker = IncidentCounter(2)
 
