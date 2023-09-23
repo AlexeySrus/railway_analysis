@@ -7,8 +7,6 @@ import cv2
 import torch
 from sahi.postprocess.combine import GreedyNMMPostprocess
 from sahi.prediction import ObjectPrediction
-from turbojpeg import TurboJPEG
-from sklearn.cluster import DBSCAN
 
 from utils.yolo_utils import scale_boxes, non_max_suppression_v8, get_tta_transforms, rotate_image, reverse_boxed_from_rotation
 from models_inference.yolo_config import DETECTION_CONF, NMS_TH, SAHI_MATCHING_METRIC, GREEDY_NMM_TH, WINDOW_STRIDE

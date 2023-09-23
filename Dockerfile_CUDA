@@ -1,6 +1,8 @@
-FROM ubuntu:22.04
+FROM nvcr.io/nvidia/tensorrt:22.12-py3
 
 ENV DEBIAN_FRONTEND=noninteractive
+ENV FORCE_CUDA="1"
+ENV CUDA_HOME="/usr/local/cuda"
 
 # configure timezone, our app depends on it.
 RUN /usr/bin/ln -sf /usr/share/zoneinfo/America/Toronto /etc/localtime
@@ -11,12 +13,12 @@ RUN apt update \
     && apt clean
 
 RUN pip3 install -U pip
-RUN pip3 install --no-cache-dir Cython python-multipart
+
+RUN pip3 install --no-cache-dir torch torchvision --index-url https://download.pytorch.org/whl/cu118
+RUN pip3 install --no-cache-dir Cython python-multipart onnx onnxruntime-gpu==1.16.0
 
 WORKDIR /app
 COPY . .
-
-RUN pip3 install onnx onnxruntime==1.16.0
 
 RUN pip3 install --no-cache-dir -r requirements.txt
 

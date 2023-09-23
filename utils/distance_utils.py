@@ -166,10 +166,9 @@ def render_dist_frame(image, train_asset, matrix, warp_size, dets: list, dist_in
         if lines_asset is None:
             lines_asset = np.zeros((padded.shape[0], padded.shape[1], 4), dtype=np.uint8)
 
-            lines_colors = ((200, 20, 10, 255), (200, 200, 10, 255), (20, 200, 10, 255))
+            lines_colors = ((10, 20, 200, 255), (10, 200, 200, 255), (10, 200, 20, 255))
             text_font = cv2.FONT_HERSHEY_DUPLEX
             text_scale = 3.0
-            colors = [(50, 20, 200), (200, 20, 100)]
             text_thickness = 7
 
             for line_i, line_d in enumerate(dist_info['distances']):
@@ -212,7 +211,7 @@ def render_dist_frame(image, train_asset, matrix, warp_size, dets: list, dist_in
                 )
 
         padded[lines_asset[..., 3] > 0] = lines_asset[..., :3][lines_asset[..., 3] > 0].copy()
-        lines_asset = cv2.cvtColor(lines_asset, cv2.COLOR_RGBA2BGRA)
+        # lines_asset = cv2.cvtColor(lines_asset, cv2.COLOR_RGBA2BGRA)
 
     if len(dets) > 0:
         pts = []

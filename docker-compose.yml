@@ -1,0 +1,15 @@
+version: '3.5'
+
+services:
+    furnitureremoval:
+        container_name: rzd-road-video-analyzer
+        build:
+            context: .
+            dockerfile: Dockerfile
+        restart: always
+        command: "streamlit run frontend/app.py --server.port=8052"
+        ports:
+            - "8052:8052"
+        deploy:
+            restart_policy:
+                condition: any
