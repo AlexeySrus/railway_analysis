@@ -14,7 +14,7 @@ camera:
   calibration_matrix: "./data/calibration.npz"
 
 inference:
-  video: "/Users/vpvp/Documents/work/railway_analysis/test1.mp4"
-  show_vis: False
+  video: "/Users/vpvp/Documents/work/railway_analysis/test*.mp4"
+  show_vis: True
   output_csv: "./output.csv"
 

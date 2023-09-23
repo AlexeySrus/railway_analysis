@@ -146,9 +146,7 @@ def process_video(
         mask = sm(frame)
         detections = detector(frame, window_predict=False, tta_predict=False)
         detections = convert_yoloonnx_detections_to_united_list(detections)
-        detections = [
-            (upscale_bbox(d[0], frame.shape), d[1], d[2]) for d in detections
-        ]
+        detections = [(upscale_bbox(d[0], frame.shape), d[1], d[2]) for d in detections]
 
         states = get_intersection_states(detections, mask)
         tracker.update(max(states) if len(states) > 0 else 1, timestamp)
@@ -156,9 +154,7 @@ def process_video(
         vis_frame = plot_railway_masks(frame, mask)
         vis_frame = plot_detections(vis_frame, detections, states)
 
-        status = (
-            "INCIDENT" if tracker.last_recorded_incident_state == 2 else "NORMAL"
-        )
+        status = "INCIDENT" if tracker.last_recorded_incident_state == 2 else "NORMAL"
         vis_frame = plot_status(
             vis_frame, f"STATUS: {status}, COUNT {tracker.total_incidents}"
         )
@@ -171,19 +167,26 @@ def process_video(
             cv2.waitKey(1)
 
     stream.release()
-    
+
     return pd.DataFrame(
         {
             "filename": [1],
             "cases_count": [tracker.total_incidents],
-            "timestamps": [[datetime.datetime.fromtimestamp(int(t)).strftime("%M:%S") for t in tracker.incidents]],
+            "timestamps": [
+                [
+                    datetime.datetime.fromtimestamp(int(t)).strftime("%M:%S")
+                    for t in tracker.incidents
+                ]
+            ],
         }
     )
 
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--config", type=str, default="config.yaml", help="Path to the config")
+    parser.add_argument(
+        "--config", type=str, default="config.yaml", help="Path to the config"
+    )
     return parser.parse_args()
 
 
@@ -197,9 +200,9 @@ if __name__ == "__main__":
     detector = YOLOONNXInference(**config["yolo"])
 
     vpaths = glob.glob(config["inference"]["video"])
-    
-    csv = pd.DataFrame(columns = ["filename", "cases_count", "timestamps"])
+
+    csv = pd.DataFrame(columns=["filename", "cases_count", "timestamps"])
     for vpath in tqdm.tqdm(vpaths):
         new_csv = process_video(sm, detector, vpath, config["inference"]["show_vis"])
         csv = pd.concat([csv, new_csv])
-        csv.to_csv(args.output, index=False)
+        csv.to_csv(config["inference"]["output_csv"], index=False)
