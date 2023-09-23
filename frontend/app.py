@@ -7,6 +7,7 @@ import cv2
 from PIL import Image
 import pandas as pd
 import os
+from stqdm import stqdm
 from datetime import timedelta
 
 
@@ -16,7 +17,6 @@ from models_inference.yolo_main_wrapper import (
     YOLOONNXInference,
 )
 from utils.distance_utils import VisualizationRender
-from frontend.solution_config import SEGM_MODEL_PATH, DETECTION_MODEL_PATH
 
 
 class IncidentCounter:
@@ -239,6 +239,7 @@ if __name__ == "__main__":
             f.write(uploaded_file.read())
 
         stream = cv2.VideoCapture(uploaded_file.name, cv2.CAP_FFMPEG)
+        video_length = int(stream.get(cv2.CAP_PROP_FRAME_COUNT))
 
         if enable_lines_visualization:
             stream_width = int(stream.get(cv2.CAP_PROP_FRAME_WIDTH))
@@ -255,8 +256,10 @@ if __name__ == "__main__":
 
         tracker = IncidentCounter(2)
 
-        grabbed = True
-        while grabbed and not stop_inference:
+        for _ in stqdm(range(video_length)):
+            if stop_inference:
+                break
+
             f_start = time.time()
 
             grabbed, frame = stream.read()
