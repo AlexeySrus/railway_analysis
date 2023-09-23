@@ -14,7 +14,9 @@ def preprocess_frame(image: np.ndarray, size: int = 1024) -> Tuple[np.ndarray, T
         pad_value=114,
         return_shifts=True
     )
-    img = cv2.resize(img, (size, size), interpolation=cv2.INTER_AREA)
+
+    img = cv2.resize(img, (size, size), interpolation=cv2.INTER_NEAREST)
+
     img = (img.astype(np.float32) / 255.0).transpose(2, 0, 1)
 
     img = img - np.array([0.485, 0.456, 0.406], dtype=np.float32)[:, None, None]
@@ -24,15 +26,14 @@ def preprocess_frame(image: np.ndarray, size: int = 1024) -> Tuple[np.ndarray, T
 
 
 def sigmoid(x):
-    return 1.0 / (1.0 + np.exp(-x))
+    return 1 / (1 + np.exp(-x))
 
 
 def postprocess_segmentation(prediction: np.ndarray, original_shape: Tuple[int, int], shifts: Tuple[int, int], threshold: float = 0.5) -> np.ndarray:
     max_image_side = max(original_shape[:2])
 
-    pred = prediction[0].transpose(1, 2, 0)
+    pred = prediction[0][1]
     pred = cv2.resize(pred, (max_image_side, max_image_side), interpolation=cv2.INTER_CUBIC)
-    pred = pred.transpose(2, 0, 1)
 
     pred = sigmoid(pred) > threshold
 
@@ -40,11 +41,15 @@ def postprocess_segmentation(prediction: np.ndarray, original_shape: Tuple[int, 
     sx = abs(sx)
     sy = abs(sy)
 
-    pred = pred[:, sy:sy + original_shape[0], sx:sx + original_shape[1]]
+    pred = pred[sy:sy + original_shape[0], sx:sx + original_shape[1]]
 
-    res_mask = np.zeros((original_shape[0], original_shape[1]), dtype=np.int32)
+    num_labels, labels_im = cv2.connectedComponents(pred.astype(np.uint8) * 255)
 
-    for i in range(3):
-        res_mask[pred[i + 1]] = i + 1
+    if num_labels > 2:
+        max_lab = max(range(1, num_labels), key=lambda x: (labels_im == x).sum())
+        pred = labels_im == max_lab
+
+    res_mask = np.zeros((original_shape[0], original_shape[1]), dtype=np.uint8)
+    res_mask[pred] = 1
 
     return res_mask
