@@ -134,9 +134,9 @@ def process_video(
     tracker = IncidentCounter(2)
 
     stream = cv2.VideoCapture(vpath, cv2.CAP_FFMPEG)
+    video_length = int(stream.get(cv2.CAP_PROP_FRAME_COUNT))
 
-    grabbed = True
-    while grabbed:
+    for _ in tqdm.tqdm(range(video_length)):
         grabbed, frame = stream.read()
         timestamp = stream.get(cv2.CAP_PROP_POS_MSEC) / 1000.0
 
@@ -174,7 +174,7 @@ def process_video(
             "cases_count": [tracker.total_incidents],
             "timestamps": [
                 [
-                    datetime.datetime.fromtimestamp(int(t)).strftime("%M:%S")
+                    str(datetime.datetime.fromtimestamp(int(t)).strftime("%M:%S"))
                     for t in tracker.incidents
                 ]
             ],
@@ -205,4 +205,11 @@ if __name__ == "__main__":
     for vpath in tqdm.tqdm(vpaths):
         new_csv = process_video(sm, detector, vpath, config["inference"]["show_vis"])
         csv = pd.concat([csv, new_csv])
-        csv.to_csv(config["inference"]["output_csv"], index=False)
+        csv.to_csv(config["inference"]["output_csv"], index=False,)
+
+    with open(config["inference"]["output_csv"], 'r') as f:
+        file_lines = [fline for fline in f]
+
+    with open(config["inference"]["output_csv"], 'w') as f:
+        for fline in file_lines:
+            f.write(fline.replace('\'', '"'))
