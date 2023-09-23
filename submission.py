@@ -12,6 +12,7 @@ from models_inference.yolo_main_wrapper import (
     convert_yoloonnx_detections_to_united_list,
     YOLOONNXInference,
 )
+from utils.coco_utils import valid_coco_names
 
 
 class IncidentCounter:
@@ -146,7 +147,11 @@ def process_video(
         mask = sm(frame)
         detections = detector(frame, window_predict=False, tta_predict=False)
         detections = convert_yoloonnx_detections_to_united_list(detections)
-        detections = [(upscale_bbox(d[0], frame.shape), d[1], d[2]) for d in detections]
+        detections = [
+            (upscale_bbox(d[0], frame.shape), d[1], d[2])
+            for d in detections
+            if d[2] in valid_coco_names
+        ]
 
         states = get_intersection_states(detections, mask)
         tracker.update(max(states) if len(states) > 0 else 1, timestamp)
@@ -205,11 +210,14 @@ if __name__ == "__main__":
     for vpath in tqdm.tqdm(vpaths):
         new_csv = process_video(sm, detector, vpath, config["inference"]["show_vis"])
         csv = pd.concat([csv, new_csv])
-        csv.to_csv(config["inference"]["output_csv"], index=False,)
+        csv.to_csv(
+            config["inference"]["output_csv"],
+            index=False,
+        )
 
-    with open(config["inference"]["output_csv"], 'r') as f:
+    with open(config["inference"]["output_csv"], "r") as f:
         file_lines = [fline for fline in f]
 
-    with open(config["inference"]["output_csv"], 'w') as f:
+    with open(config["inference"]["output_csv"], "w") as f:
         for fline in file_lines:
-            f.write(fline.replace('\'', '"'))
+            f.write(fline.replace("'", '"'))

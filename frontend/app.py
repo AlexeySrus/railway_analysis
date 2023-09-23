@@ -17,7 +17,7 @@ from models_inference.yolo_main_wrapper import (
     YOLOONNXInference,
 )
 from utils.distance_utils import VisualizationRender
-from utils.coco_utils import coco_names
+from utils.coco_utils import valid_coco_names
 
 
 class IncidentCounter:
@@ -280,7 +280,7 @@ if __name__ == "__main__":
             detections = detector(frame, window_predict=False, tta_predict=False)
             detections = convert_yoloonnx_detections_to_united_list(detections)
             detections = [
-                (upscale_bbox(d[0], frame.shape), d[1], d[2]) for d in detections
+                (upscale_bbox(d[0], frame.shape), d[1], d[2]) for d in detections if d[2] in valid_coco_names
             ]
 
             states = get_intersection_states(detections, mask)
