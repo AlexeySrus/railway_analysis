@@ -1,4 +1,3 @@
-import os
 import argparse
 import numpy as np
 import cv2
@@ -6,6 +5,7 @@ import datetime
 import pandas as pd
 import glob
 import tqdm
+import yaml
 
 from models_inference.segmentation_model import SegmentationModelWrapper
 from models_inference.yolo_main_wrapper import (
@@ -183,27 +183,23 @@ def process_video(
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--video", type=str, required=True, help="Path to the video")
-    parser.add_argument("--output", type=str, default="output.csv", help="Output CSV file")
-    parser.add_argument("--vis", default=False, action="store_true")
+    parser.add_argument("--config", type=str, default="config.yaml", help="Path to the config")
     return parser.parse_args()
 
 
 if __name__ == "__main__":
     args = parse_args()
 
-    sm = SegmentationModelWrapper("./weights/seg.onnx")
-    detector = YOLOONNXInference(
-        "./weights/yolov8s.onnx",
-        image_size=640,
-        window_size=-1,
-        enable_sahi_postprocess=False,
-    )
+    with open(args.config) as f:
+        config = yaml.load(f, Loader=yaml.FullLoader)
 
-    vpaths = glob.glob(args.video)
+    sm = SegmentationModelWrapper(config["segmentation"]["weights"])
+    detector = YOLOONNXInference(**config["yolo"])
+
+    vpaths = glob.glob(config["inference"]["video"])
     
     csv = pd.DataFrame(columns = ["filename", "cases_count", "timestamps"])
     for vpath in tqdm.tqdm(vpaths):
-        new_csv = process_video(sm, detector, vpath, args.vis)
+        new_csv = process_video(sm, detector, vpath, config["inference"]["show_vis"])
         csv = pd.concat([csv, new_csv])
         csv.to_csv(args.output, index=False)

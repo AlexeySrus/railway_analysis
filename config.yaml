@@ -1,0 +1,20 @@
+yolo:
+  weights: "./weights/yolov8s.onnx"
+  image_size: 640
+  window_batch_size: 1
+  window_size: 1280
+  enable_sahi_postprocess: True
+
+segmentation:
+  weights: "./weights/seg.onnx"
+
+camera:
+  height: 2
+  angle: 10
+  calibration_matrix: "./data/calibration.npz"
+
+inference:
+  video: "/Users/vpvp/Documents/work/railway_analysis/test1.mp4"
+  show_vis: False
+  output_csv: "./output.csv"
+
