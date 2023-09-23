@@ -310,7 +310,6 @@ if __name__ == "__main__":
                 Image.fromarray(cv2.cvtColor(vis_frame, cv2.COLOR_BGR2RGB))
             )
 
-
         stream.release()
         os.remove(uploaded_file.name)
         incidents_list.empty()
