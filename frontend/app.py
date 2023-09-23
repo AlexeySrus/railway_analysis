@@ -15,7 +15,8 @@ from models_inference.yolo_main_wrapper import (
     convert_yoloonnx_detections_to_united_list,
     YOLOONNXInference,
 )
-
+from utils.distance_utils import VisualizationRender
+from frontend.solution_config import SEGM_MODEL_PATH, DETECTION_MODEL_PATH
 
 # class _IncidentCounter():
 #     def __init__(self, timeout: float = 1.5):
@@ -184,12 +185,12 @@ def upscale_bbox(bbox: np.ndarray, shape: tuple, percent: float = 0.4) -> list:
 
 
 def get_segmentation_model():
-    return SegmentationModelWrapper("./data/seg.onnx")
+    return SegmentationModelWrapper(SEGM_MODEL_PATH)
 
 
 def get_detection_model():
     return YOLOONNXInference(
-        "./data/yolov8s.onnx",
+        DETECTION_MODEL_PATH,
         image_size=640,
         window_size=-1,
         enable_sahi_postprocess=False,
@@ -259,6 +260,9 @@ if __name__ == "__main__":
 
     # st.caption("Список инцидентов")
 
+    visualization_render: Optional[VisualizationRender] = None
+    enable_lines_visualization: bool = False
+
     if submitted and uploaded_file is not None:
         stop_inference = st.button("Остановить")
 
@@ -272,6 +276,11 @@ if __name__ == "__main__":
             f.write(uploaded_file.read())
 
         stream = cv2.VideoCapture(uploaded_file.name, cv2.CAP_FFMPEG)
+
+        if enable_lines_visualization:
+            stream_width = int(stream.get(cv2.CAP_PROP_FRAME_WIDTH))
+            stream_height = int(stream.get(cv2.CAP_PROP_FRAME_HEIGHT))
+            visualization_render = VisualizationRender((stream_height, stream_width))
 
         st.session_state["stream"] = stream
         st.session_state["active"] = True
@@ -319,6 +328,9 @@ if __name__ == "__main__":
             )
 
             st.session_state["incidents"] = tracker.incidents
+
+            if enable_lines_visualization:
+                vis_frame = visualization_render(vis_frame, detections)
 
             frame_display.image(
                 Image.fromarray(cv2.cvtColor(vis_frame, cv2.COLOR_BGR2RGB))
