@@ -19,15 +19,14 @@
 ![image](./assets/sample1.jpeg)
 
 2. Слева - вычисление линии на расстояниях 10, 20 и 100 метров от камеры. Справа - вид сверху на маршрут поезда.
+Посмотрите [видеоверсию!](https://drive.google.com/file/d/1_9dY4oTE-lisvIhNVidGyK169r54kulL/view?usp=sharing)
 ![image](./assets/sample2.jpeg)
-<iframe src="https://drive.google.com/file/d/1_9dY4oTE-lisvIhNVidGyK169r54kulL/preview" width="640" height="480" allow="autoplay"></iframe>
 
 ### Стэк:
-    - [PyTorch](https://)
-    - [OpenCV](https://)
-    - [TensorRT](https://)
-    - [SuperGradients](https://)
-    - [Streamlit](https://)
-
+    - PyTorch
+    - OpenCV
+    - TensorRT
+    - SuperGradients
+    - Streamlit
 
 ## Установка и запуск
