@@ -6,6 +6,8 @@ import numpy as np
 import cv2
 from PIL import Image
 import pandas as pd
+import os
+from datetime import timedelta
 
 
 from models_inference.segmentation_model import SegmentationModelWrapper
@@ -183,20 +185,16 @@ def upscale_bbox(bbox: np.ndarray, shape: tuple, percent: float = 0.4) -> list:
 
 
 def get_segmentation_model():
-    return SegmentationModelWrapper("./weights/seg.onnx")
+    return SegmentationModelWrapper("./data/seg.onnx")
 
 
 def get_detection_model():
     return YOLOONNXInference(
-        "./weights/yolov8l.onnx",
+        "./data/yolov8s.onnx",
         image_size=640,
         window_size=-1,
         enable_sahi_postprocess=False,
     )
-
-
-def init_state():
-    st.session_state["incidents"] = []
 
 
 if __name__ == "__main__":
@@ -205,8 +203,6 @@ if __name__ == "__main__":
         page_title="Цифровой прорыв/Безопасный маршрут"
         # initial_sidebar_state="expanded",
     )
-
-    init_state()
 
     header = """
                 <h1 style="color:#2a93b9;">
@@ -261,6 +257,8 @@ if __name__ == "__main__":
             st.caption("Параметры камеры")
 
         submitted = st.form_submit_button("Старт")
+
+    # st.caption("Список инцидентов")
 
     if submitted and uploaded_file is not None:
         stop_inference = st.button("Остановить")
@@ -326,9 +324,25 @@ if __name__ == "__main__":
             incidents_list.write(tracker.incidents)
                 # if stop_inference:
             # print("STOP")
-            # stream.release()
-            # os.remove(uploaded_file.name)
-            # grabbed = False
+        stream.release()
+        os.remove(uploaded_file.name)
+        incidents_list.empty()
+
     
-    if st.session_state["incidents"]:
-        st.write(st.session_state["incidents"])
+    if "incidents" in st.session_state.keys() and len(st.session_state["incidents"]) > 0:
+        st.caption("Список инцидентов")
+
+        incidents = pd.DataFrame({
+            "timestamp": st.session_state["incidents"]
+        })
+        incidents["timestamp"] = incidents["timestamp"].apply(lambda x: datetime.datetime.fromtimestamp(int(x)).strftime('%M:%S')
+)
+
+        st.dataframe(incidents)
+        st.download_button(
+            "Скачать csv",
+            incidents.to_csv(index=False).encode("utf-8"),
+            "file.csv",
+            "text/csv",
+            key='download-csv'
+        )
